@@ -56,6 +56,7 @@ MonoBehaviour:
   - {fileID: 3379882535541963536, guid: 4a9f0ff12a8394b059411a30b959bc75, type: 3}
   - {fileID: 3379882535541963536, guid: 4cd4a29488b1d4cefa51c2546438529a, type: 3}
   - {fileID: 3379882535541963536, guid: 2ea858fafd8e54f58976b2315bb78001, type: 3}
+  - {fileID: 3379882535541963536, guid: 5d3f0a16e70f749b2b60b7f0ea743bbf, type: 3}
   _levelMessage: Thinking about a trip abroad? Think again. Press space to use the
     bomb
-  _requiredPercentage: 90
+  _requiredPercentage: 85

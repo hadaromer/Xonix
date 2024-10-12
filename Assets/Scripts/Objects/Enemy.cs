@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -146,5 +147,10 @@ public class Enemy : MonoBehaviour
         _isDestroyer = enemyData.isDestroyer;
         _damage = enemyData.damage;
         _startingPosition = enemyData.startingPosition;
+    }
+
+    private void OnDestroy()
+    {
+        StopAllCoroutines();
     }
 }

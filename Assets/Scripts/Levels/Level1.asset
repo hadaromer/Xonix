@@ -43,6 +43,8 @@ MonoBehaviour:
     isLandEnemy: 0
     isDestroyer: 0
     damage: 0
-  _powerUps: []
+  _powerUps:
+  - {fileID: -7107506721412521191, guid: 60e8895106ab24fdb850358aa67523bd, type: 3}
+  - {fileID: 3379882535541963536, guid: 4cd4a29488b1d4cefa51c2546438529a, type: 3}
   _levelMessage: Welcome to the MTA, it's time to forget about parties..
-  _requiredPercentage: 100
+  _requiredPercentage: 90

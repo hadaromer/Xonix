@@ -46,6 +46,7 @@ MonoBehaviour:
   _powerUps:
   - {fileID: -7107506721412521191, guid: 60e8895106ab24fdb850358aa67523bd, type: 3}
   - {fileID: 3379882535541963536, guid: 79267096ac68c4eb3a3cc7dce4290b1d, type: 3}
+  - {fileID: 3379882535541963536, guid: 2ea858fafd8e54f58976b2315bb78001, type: 3}
   _levelMessage: Meet your new favorite place, you're going to spend a lot of time
     here
-  _requiredPercentage: 100
+  _requiredPercentage: 90

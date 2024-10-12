@@ -98,7 +98,7 @@ public class UIManager : Singleton<UIManager>
 
     public void UpdateScoreText(int percentage, int score)
     {
-        _percentageText.text = percentage + "%";
+        _percentageText.text = percentage + "% / " +  GameManager.Instance.RequiredPercentage + "%";
         _scoreText.text = score.ToString();
     }
 }

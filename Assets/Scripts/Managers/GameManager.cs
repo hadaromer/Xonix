@@ -30,7 +30,7 @@ public class GameManager : Singleton<GameManager>
     private GameObject _food; // Food object
     private GameObject[] _livesPrefabs; // Array to hold life objects
     private int _currentTime = 90; // Current time
-    private int _requiredPercentage = 50; // Required percentage to win
+    private int _requiredPercentage = 100; // Required percentage to win
     private GameObject _backgroundObject; // Background object
     private string _failSound = "Fail"; // Sound for failure
     private string _winSound = "Win"; // Sound for winning
@@ -48,6 +48,7 @@ public class GameManager : Singleton<GameManager>
     private int LeftBorder => -1 * (_width / 2 + 1); // Left border of the game area
     private int TopBorder => (_height / 2) + 1; // Top border of the game area
     private int BottomBorder => -1 * (_height / 2 + 1); // Bottom border of the game area
+    public int RequiredPercentage => _requiredPercentage;
 
     private void Awake()
     {

@@ -71,7 +71,6 @@ public class PowerUpManager : Singleton<PowerUpManager>
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-
         powerUp.transform.localScale = Vector3.one;
 
         // Release the power-up back to the appropriate pool

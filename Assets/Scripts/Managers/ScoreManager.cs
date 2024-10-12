@@ -54,13 +54,6 @@ public class ScoreManager : Singleton<ScoreManager>
         PlayerPrefs.Save();
     }
 
-    // Update the score and percentage text UI elements
-    public void UpdateScoreText(TextMeshProUGUI percentageText, TextMeshProUGUI scoreText)
-    {
-        percentageText.text = _currentPercentage + "%";
-        scoreText.text = _currentScore.ToString(); 
-    }
-
     // Calculate the final score based on the remaining time and lives
     public void CalculateFinalScore(int currentTime, int lives)
     {
@@ -70,8 +63,18 @@ public class ScoreManager : Singleton<ScoreManager>
     // Update the score based on the new percentage of the game completed
     public void UpdateScore(int newPercentage)
     {
+        if(_currentPercentage == newPercentage) return;
         int oldPercentage = _currentPercentage; 
         _currentPercentage = newPercentage; 
-        _currentScore += (int)Mathf.Pow((_currentPercentage - oldPercentage + 1), 2);
+        if(_currentPercentage > oldPercentage)
+            _currentScore += (int)Mathf.Pow((_currentPercentage - oldPercentage + 1), 2);
+        UIManager.Instance.UpdateScoreText(_currentPercentage, _currentScore);
+    }
+    
+    // Reset the current percentage
+    public void ResetPercentage()
+    {
+        _currentPercentage = 0;
+        UIManager.Instance.UpdateScoreText(_currentPercentage, _currentScore);
     }
 }

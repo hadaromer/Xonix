@@ -12,7 +12,7 @@ public class Player : MonoBehaviour
     void Update()
     {
         // Set the "Run" parameter in the Animator based on the player's running state
-        _animator.SetBool(Run, PlayerController.Instance._isRunning);
+        _animator.SetBool(Run, PlayerController.Instance.isRunning);
     }
     
     // Handle collision with other objects
@@ -46,6 +46,18 @@ public class Player : MonoBehaviour
         {
             powerUpCollected = true;
             GameManager.Instance.AddTime();
+        }
+        // Check if the playter collided with a "APlus" power-up
+        if(other.CompareTag("APlus"))
+        {
+            powerUpCollected = true;
+            PlayerController.Instance.APlus();
+        }
+        // Check if the player collided with a "Bomb" power-up
+        if(other.CompareTag("Bomb"))
+        {
+            powerUpCollected = true;
+            GameManager.Instance.Bomb();
         }
 
         // If a power-up was collected, release it

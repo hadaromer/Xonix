@@ -37,4 +37,9 @@ public class BestObjectPool<T> where T : MonoBehaviour
     public T Get() => _objectPool.Get();
     
     public void Release(T obj) => _objectPool.Release(obj);
+
+    public void Dispose()
+    {
+        _objectPool.Dispose();
+    }
 }

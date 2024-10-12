@@ -4,57 +4,70 @@ using UnityEngine;
 
 public class EnemyManager : Singleton<EnemyManager>
 {
-    [SerializeField] private Enemy _enemyPrefab; // Prefab for spawning enemies
-    [SerializeField] private Vector3[] _enemyPositions; // Array of predefined enemy positions
+    private EnemyData[] _enemiesData; // Array of predefined enemy data
     private List<Enemy> _enemies; // List to hold spawned enemies
     private Enemy _landEnemy; // Reference to the land enemy
     private Vector3 _landEnemyStartingVector; // Starting position for the land enemy
 
     // Public properties to access private fields
     public List<Enemy> Enemies => _enemies;
-    public Enemy LandEnemy => _landEnemy;
-    public Vector3 LandEnemyStartingVector => _landEnemyStartingVector;
 
     // Method to spawn enemies
     public void SpawnEnemies()
     {
         _enemies = new List<Enemy>();
-        for (int i = 0; i < _enemyPositions.Length; i++)
+        foreach (var enemyData in _enemiesData)
         {
-            _enemies.Add(SpawnEnemy(i));
+            var enemy = SpawnEnemy(enemyData.startingPosition, enemyData.enemyPrefab);
+            enemy.SetEnemyData(enemyData);
+            _enemies.Add(enemy);
         }
-        _landEnemyStartingVector = new Vector3(0, GameManager.Instance.Height / 2);
-        _landEnemy = Instantiate(_enemyPrefab, _landEnemyStartingVector, Quaternion.identity);
-        _landEnemy.SetLandEnemy(true);
     }
 
     // Method to spawn a single enemy at a valid position
-    private Enemy SpawnEnemy(int index)
+    private Enemy SpawnEnemy(Vector3 startingPosition,Enemy _enemyPrefab)
     {
-        var nextEnemyPosition = _enemyPositions[index];
-        return Instantiate(_enemyPrefab, nextEnemyPosition, Quaternion.identity);
+        return Instantiate(_enemyPrefab, startingPosition, Quaternion.identity);
     }
+    
+    // Method to freeze an enemy for a durtaion
+    public void FreezeEnemy(Enemy enemy, float freezeDuration = 5f)
+    {
+        StartCoroutine(FreezeEnemyRoutine(enemy, freezeDuration));
+    }
+    
+    // Coroutine to handle freezing an enemy
+    private IEnumerator FreezeEnemyRoutine(Enemy enemy, float freezeDuration)
+    {
+        enemy.SetIsFrozen(true);
+        enemy.GetComponent<SpriteRenderer>().color = Color.blue;
+        yield return new WaitForSeconds(freezeDuration);
+        if (enemy != null) // Check if the enemy is not destroyed
+        {
+            enemy.GetComponent<SpriteRenderer>().color = Color.white;
+            enemy.SetIsFrozen(false);
+        }
+    }
+    
 
     // Method to slow down enemies for a duration
-    public void SlowEnemies(float slowDuration = 5f, float slowStepTimeout = 0.06f, float normalStepTimeout = 0.04f)
+    public void SlowEnemies(float slowDuration = 5f)
     {
-        StartCoroutine(SlowEnemiesRoutine(slowDuration, slowStepTimeout, normalStepTimeout));
+        StartCoroutine(SlowEnemiesRoutine(slowDuration));
     }
 
     // Coroutine to handle slowing down enemies
-    private IEnumerator SlowEnemiesRoutine(float slowDuration, float slowStepTimeout, float normalStepTimeout)
+    private IEnumerator SlowEnemiesRoutine(float slowDuration)
     {
         foreach (var enemy in _enemies)
         {
-            enemy.SetStepTimeout(slowStepTimeout);
+            enemy.SlowDown();
         }
-        _landEnemy.SetStepTimeout(slowStepTimeout);
         yield return new WaitForSeconds(slowDuration);
         foreach (var enemy in _enemies)
         {
-            enemy.SetStepTimeout(normalStepTimeout);
+            enemy.NormalizeSpeed();
         }
-        _landEnemy.SetStepTimeout(normalStepTimeout);
     }
 
     // Method to make an enemy blink and move to a new position
@@ -63,5 +76,37 @@ public class EnemyManager : Singleton<EnemyManager>
         enemy.transform.position = new Vector3(enemy.transform.position.x, enemy.transform.position.y, -1);
         SpriteRenderer enemySpriteRenderer = enemy.GetComponent<SpriteRenderer>();
         StartCoroutine(GameManager.Instance.Blink(3.0f, enemySpriteRenderer));
+    }
+    
+    // Method to update the level data
+    public void UpdateLevelData(LevelData currentLevelData)
+    {
+        _enemiesData = currentLevelData.EnemiesData;
+        if(_enemies != null)
+        {
+            DestroyEnemies();
+        }
+        SpawnEnemies();
+    }
+    
+    // Method to destroy all enemies
+    private void DestroyEnemies()
+    {
+        for (int i = 0; i < _enemies.Count; i++)
+        {
+            Destroy(_enemies[i].gameObject);
+        }
+    }
+    
+    // Method to reset land enemies to their starting position
+    public void ResetLandEnemies()
+    {
+        foreach (var enemy in _enemies)
+        {
+            if (enemy.IsLandEnemy)
+            {
+                enemy.transform.position = enemy.StartingPosition;
+            }
+        }
     }
 }

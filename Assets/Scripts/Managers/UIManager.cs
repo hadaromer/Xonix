@@ -11,7 +11,10 @@ public class UIManager : Singleton<UIManager>
     [SerializeField] private Image _winImage; // UI element to display the win image
     [SerializeField] private Image _loseImage; // UI element to display the lose image
     [SerializeField] private TMP_InputField _playerName; // Input field for the player's name
-
+    [SerializeField] private TextMeshProUGUI _levelMessageText; // UI element to display level message
+    [SerializeField] private TextMeshProUGUI _levelNumberText; // UI element to display level number
+    [SerializeField] private Image _levelMessageBackground; // UI element to display level message background
+    
     // Public properties to access private fields
     public TextMeshProUGUI PercentageText => _percentageText;
     public TextMeshProUGUI ScoreText => _scoreText;
@@ -69,5 +72,33 @@ public class UIManager : Singleton<UIManager>
         {
             scoreText.gameObject.SetActive(false);
         }
+    }
+
+    // Display the level message using a typewriter effect
+    public IEnumerator TypeWriterEffect(string message, int _levelNumber)
+    {
+        _levelNumberText.text = "Level " + _levelNumber;
+        _levelNumberText.gameObject.SetActive(true);
+        _levelMessageText.text = "";
+        _levelMessageBackground.gameObject.SetActive(true);
+        _levelMessageText.gameObject.SetActive(true);
+        AudioManager.Instance.PlaySound("Keyboard");
+        foreach (char letter in message.ToCharArray())
+        {
+            _levelMessageText.text += letter;
+            // wait for random time between 0.01 and 0.1 seconds
+            yield return new WaitForSeconds(Random.Range(0.01f, 0.1f));
+            //yield return new WaitForSeconds(0.05f); // Adjust the speed of the typewriter effect
+        }
+        yield return new WaitForSeconds(2f); // Display the message for 5 seconds
+        _levelMessageBackground.gameObject.SetActive(false);
+        _levelMessageText.gameObject.SetActive(false);
+        _levelNumberText.gameObject.SetActive(false);
+    }
+
+    public void UpdateScoreText(int percentage, int score)
+    {
+        _percentageText.text = percentage + "%";
+        _scoreText.text = score.ToString();
     }
 }

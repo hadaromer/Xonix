@@ -15,8 +15,10 @@ public class PlayerController : Singleton<PlayerController>
     private BestObjectPool<Line> _linePool; // Object pool for movement lines
     private List<Line> _movementLine = new(); // List to hold movement lines
     private Dictionary<Vector3, bool> _xonixPositions = new(); // Dictionary to track player positions
-    public bool _isRunning { get; private set; } // Flag to indicate if the player is running
-    public bool _isOnLand { get; private set; } // Flag to indicate if the player is on land
+    private bool _unTouchable = false; // Flag to indicate if the player is untouchable
+    public bool isRunning { get; private set; } // Flag to indicate if the player is running
+    public bool isOnLand { get; private set; } // Flag to indicate if the player is on land
+    public bool unTouchable => _unTouchable; // Flag to indicate if the player is untouchable
     private Vector3 startPosition; // Starting position of the player
 
     private void Awake()
@@ -32,13 +34,12 @@ public class PlayerController : Singleton<PlayerController>
         _xonix.transform.position = startPosition;
         _xonixPositions.Add(_xonix.transform.position, true);
         _recentPlayerMovement = Vector3.zero;
-        _isRunning = false;
-        _isOnLand = true;
+        isRunning = false;
+        isOnLand = true;
         foreach (var line in _movementLine)
         {
             _linePool.Release(line);
         }
-
         _movementLine.Clear();
         _xonixPositions.Clear();
     }
@@ -68,7 +69,7 @@ public class PlayerController : Singleton<PlayerController>
 
             if (!GameManager.Instance.IsThePositionIsValid(newPosition))
             {
-                _isRunning = false;
+                isRunning = false;
                 return;
             }
 
@@ -114,7 +115,7 @@ public class PlayerController : Singleton<PlayerController>
     {
         foreach (var line in _movementLine)
         {
-            GameManager.Instance.MakeLandInPosition(line.transform.position);
+            GameManager.Instance.ChangePosition(line.transform.position, true);
             _linePool.Release(line);
         }
 
@@ -142,8 +143,8 @@ public class PlayerController : Singleton<PlayerController>
             _xonix.transform.localScale = new Vector3(-1, 1, 1); // Flip to face left
         }
 
-        _isRunning = true;
-        _isOnLand = !GameManager.Instance.IsThereWaterInPosition(_xonix.transform.position);
+        isRunning = true;
+        isOnLand = !GameManager.Instance.IsThereWaterInPosition(_xonix.transform.position);
         _xonix.transform.position = newPosition;
     }
 
@@ -170,6 +171,10 @@ public class PlayerController : Singleton<PlayerController>
         {
             movementDirection = Vector3.down;
         }
+        if(Input.GetKeyDown(KeyCode.Space))
+        {
+            GameManager.Instance.Explode(_xonix.transform.position);
+        }
 
         return movementDirection;
     }
@@ -184,5 +189,19 @@ public class PlayerController : Singleton<PlayerController>
         _stepTimeout = 0.01f;
         yield return new WaitForSeconds(5);
         _stepTimeout = 0.025f;
+    }
+
+    public void APlus()
+    {
+        StartCoroutine(APlusCoroutine());
+    }
+
+    private IEnumerator APlusCoroutine()
+    {
+        _unTouchable = true;
+        _xonix.GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 0.3f);
+        yield return new WaitForSeconds(5);
+        _unTouchable = false;
+        _xonix.GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 1);
     }
 }

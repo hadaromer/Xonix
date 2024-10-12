@@ -11,6 +11,8 @@ TagManager:
   - Life
   - SpeedUp
   - AddTime
+  - Bomb
+  - APlus
   layers:
   - Default
   - TransparentFX

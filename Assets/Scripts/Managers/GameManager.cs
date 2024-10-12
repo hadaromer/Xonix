@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+
 public class GameManager : Singleton<GameManager>
 {
     [SerializeField] private int _width = 100; // Width of the game area
@@ -13,9 +14,13 @@ public class GameManager : Singleton<GameManager>
     [SerializeField] private GameObject _wallPrefab; // Prefab for the wall
     [SerializeField] private GameObject _waterPrefab; // Prefab for the water
     [SerializeField] private GameObject _livePrefab; // Prefab for the lives
+    [SerializeField] private GameObject _bombPrefab; // Prefab for the bomb
     [SerializeField] private Sprite _background; // Background sprite
-
+    [SerializeField] private GameObject _explodeGameObject; // Explosion effect
+    
     private int _lives = 3; // Number of lives
+    private int _bombsCount = 0; // Number of bombs
+    private GameObject _bomb;
     private bool _isGameRunning = true; // Is the game currently running
     public bool IsGameRunning => _isGameRunning;
     private bool _isGameStarted; // Has the game started
@@ -25,13 +30,19 @@ public class GameManager : Singleton<GameManager>
     private GameObject _food; // Food object
     private GameObject[] _livesPrefabs; // Array to hold life objects
     private int _currentTime = 90; // Current time
-    private int _requiredPercentage = 75; // Required percentage to win
+    private int _requiredPercentage = 50; // Required percentage to win
+    private GameObject _backgroundObject; // Background object
     private string _failSound = "Fail"; // Sound for failure
     private string _winSound = "Win"; // Sound for winning
     private string _loseSound = "Lose"; // Sound for losing
     private string _gameMusic = "GameMusic"; // Background game music
     private string _timeWarning = "TimeWarning"; // Sound for time warning
     private string _lastSecond = "LastSecond"; // Sound for the last second
+    private string _destroy = "Destroy"; // Sound for destroying land
+    private string _explode = "Explode"; // Sound for explosion
+    private string _emptyBomb = "EmptyBomb"; // Sound for empty bomb
+    private Color _waterOriginalColor; // Original color of water
+    private Color _landColor = new Color(1f, 1f, 1f, 0f); // Color of the land
 
     private int RightBorder => (_width / 2) + 1; // Right border of the game area
     private int LeftBorder => -1 * (_width / 2 + 1); // Left border of the game area
@@ -52,24 +63,25 @@ public class GameManager : Singleton<GameManager>
 
     public void StartGameSession()
     {
+        CreateWaters();
         UIManager.Instance.HideScoreBoard(ScoreManager.Instance.NamesText, ScoreManager.Instance.ScoresText);
         StartCoroutine(DecreaseTime());
-        ScoreManager.Instance.UpdateScoreText(UIManager.Instance.PercentageText, UIManager.Instance.ScoreText);
-        CreateWaters();
-        EnemyManager.Instance.SpawnEnemies();
         SpawnLives();
-        PowerUpManager.Instance.StartSpwanPowerUps();
-        CreateBackground();
-        _isGameStarted = true;
+        SpawnBomb();
+        LevelManager.Instance.LoadLevel(0);
     }
 
     private void CreateBackground()
     {
-        GameObject newSprite = new GameObject("NewSprite");
-        SpriteRenderer spriteRenderer = newSprite.AddComponent<SpriteRenderer>();
+        if (_backgroundObject == null)
+        {
+            _backgroundObject = new GameObject("NewSprite");
+            _backgroundObject.AddComponent<SpriteRenderer>();
+        }
+        var spriteRenderer = _backgroundObject.GetComponent<SpriteRenderer>();
         spriteRenderer.sprite = _background;
-        newSprite.transform.position = new Vector3(0, 0, -1);
-        newSprite.transform.localScale = new Vector3(5, 4.5f);
+        _backgroundObject.transform.position = new Vector3(0, 0, -1);
+        _backgroundObject.transform.localScale = new Vector3(5, 4.5f);
         spriteRenderer.sortingLayerName = "Default";
         spriteRenderer.sortingOrder = -1;
     }
@@ -82,6 +94,14 @@ public class GameManager : Singleton<GameManager>
             _livesPrefabs[i] = Instantiate(_livePrefab);
             _livesPrefabs[i].transform.position = new Vector3(RightBorder + 8, BottomBorder + 2 + i * 5);
         }
+    }
+
+    private void SpawnBomb()
+    {
+        _bomb = Instantiate(_bombPrefab);
+        _bomb.GetComponent<SpriteRenderer>().color = new Color(1f, 1f, 1f, 0.3f);
+        _bomb.transform.position = new Vector3(LeftBorder - 8, BottomBorder + 2);
+        
     }
 
     private IEnumerator DecreaseTime()
@@ -117,8 +137,16 @@ public class GameManager : Singleton<GameManager>
         {
             _isGameRunning = false;
             ScoreManager.Instance.CalculateFinalScore(_currentTime, _lives);
+            ScoreManager.Instance.ResetPercentage();
             AudioManager.Instance.PlaySound(_winSound);
-            UIManager.Instance.ShowWinImage();
+            if (LevelManager.Instance.IsLastLevel)
+            {
+                UIManager.Instance.ShowWinImage();
+            }
+            else
+            {
+                LevelManager.Instance.LoadNextLevel();
+            }
         }
 
         if (Input.GetKeyDown(KeyCode.Return) && !string.IsNullOrEmpty(UIManager.Instance.PlayerName.text))
@@ -137,13 +165,14 @@ public class GameManager : Singleton<GameManager>
         StartCoroutine(Blink(3.0f, heartSpriteRenderer, false));
     }
 
+    
     private void GameOverByTime()
     {
         _isGameRunning = false;
         AudioManager.Instance.PlaySound(_loseSound);
         UIManager.Instance.ShowLoseImage();
     }
-
+    
     public void ContinueGame()
     {
         if (!_isGameRunning && _lives == 0)
@@ -157,11 +186,12 @@ public class GameManager : Singleton<GameManager>
         {
             _livesPrefabs[_lives].GetComponent<SpriteRenderer>().enabled = false;
             PlayerController.Instance.StartGameSession();
-            EnemyManager.Instance.LandEnemy.transform.position = EnemyManager.Instance.LandEnemyStartingVector;
+            EnemyManager.Instance.ResetLandEnemies();
             _isGameRunning = true;
         }
     }
 
+    // Add a life to the player
     public void AddLife()
     {
         if (_lives < 3)
@@ -171,8 +201,11 @@ public class GameManager : Singleton<GameManager>
         }
     }
 
+    // Create the water objects
     private void CreateWaters()
     {
+        // save original color of water
+        _waterOriginalColor = _waterPrefab.GetComponent<SpriteRenderer>().color;
         _waters = new GameObject[_height + 1, _width + 1];
         _watersState = new bool[_height + 1, _width + 1];
 
@@ -184,6 +217,7 @@ public class GameManager : Singleton<GameManager>
         }
     }
 
+    // Create water in the given position
     private GameObject CreateWater(int x, int y)
     {
         var water = Instantiate(_waterPrefab);
@@ -191,6 +225,7 @@ public class GameManager : Singleton<GameManager>
         return water;
     }
 
+    // Check if there is water in the given position
     public bool IsThereWaterInPosition(Vector3 position)
     {
         int i = (int)position.y + _height / 2;
@@ -199,32 +234,84 @@ public class GameManager : Singleton<GameManager>
         return _watersState[i, j];
     }
 
+    // Check if the given position is valid
     public bool IsThePositionIsValid(Vector3 position)
     {
         return Mathf.Abs(position.x) < _width / 2 && Mathf.Abs(position.y) < _height / 2;
     }
 
-    public void MakeLandInPosition(Vector3 position)
+    // Change the position of the water and land based on the given position
+    public void ChangePosition(Vector3 position, bool isWater, int damage = 0)
     {
         int i = (int)position.y + _height / 2;
         int j = (int)position.x + _width / 2;
-        if (_watersState[i, j])
+        if(isWater)
         {
-            _watersState[i, j] = false;
-            _waters[i, j].GetComponent<SpriteRenderer>().color = new Color(1f, 1f, 1f, 0f);
+            MakeLandInPosition(i, j);
+        }
+        else
+        {
+            // make water in the postion and in all positions that are connected to it with radius of 2
+            bool landDestroyed = false;
+            for (int a = i - damage; a <= i + damage; a++)
+            for (int b = j - damage; b <= j + damage; b++)
+            {
+                if (a >= _landWidth && a < _height + 1 - _landWidth 
+                                    && b >= _landWidth && b < _width + 1 - _landWidth)
+                {
+                    if (MakeWaterInPosition(a, b))
+                        landDestroyed = true;
+                }
+            }
+
+            if (landDestroyed)
+            {
+                AudioManager.Instance.PlaySound(_destroy);
+                UpdateScore();
+            }
         }
     }
 
-    public void MakeLandInPosition(int i, int j)
+    // Make water in the given position
+    private bool MakeWaterInPosition(int i, int j)
     {
-        _watersState[i, j] = false;
-        _waters[i, j].GetComponent<SpriteRenderer>().color = new Color(1f, 1f, 1f, 0f);
+        if (_watersState[i, j]) return false;
+        _watersState[i, j] = true;
+        StartCoroutine(ChangeColorWithWaveEffect(_waters[i, j].GetComponent<SpriteRenderer>(), _waterOriginalColor));
+        return true;
     }
 
+    // Make land in the given position
+    public void MakeLandInPosition(int i, int j)
+    {
+        if(!_watersState[i, j]) return;
+        _watersState[i, j] = false;
+        _waters[i, j].GetComponent<SpriteRenderer>().color = _landColor;
+    }
+    
+    // Coroutine to change the color of the water with a wave effect
+    private IEnumerator ChangeColorWithWaveEffect(SpriteRenderer spriteRenderer, Color targetColor)
+    {
+        Color originalColor = spriteRenderer.color;
+        float duration = 0.5f; // Duration of the effect
+        float elapsedTime = 0f;
+
+        while (elapsedTime < duration)
+        {
+            spriteRenderer.color = new Color(Random.value, Random.value, Random.value);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        spriteRenderer.color = targetColor;
+    }
+
+    // Set the enemies' positions in the status array
     private int[,] SetEnemiesPosition(int[,] status)
     {
         foreach (var enemy in EnemyManager.Instance.Enemies)
         {
+            if(enemy.IsLandEnemy) continue;
             var position = enemy.transform.position;
             int i = (int)position.y + _height / 2;
             int j = (int)position.x + _width / 2;
@@ -304,9 +391,9 @@ public class GameManager : Singleton<GameManager>
 
         // Update the score and UI
         UpdateScore();
-        ScoreManager.Instance.UpdateScoreText(UIManager.Instance.PercentageText, UIManager.Instance.ScoreText);
     }
 
+    // Update the score based on the painted area
     private void UpdateScore()
     {
         int total = 0, painted = 0;
@@ -324,10 +411,11 @@ public class GameManager : Singleton<GameManager>
             }
         }
 
-        int currentPercentage = (painted * 100 * 4) / (total * 3);
+        int currentPercentage = (painted * 100 * 4 * 100) / (total * 3 *_requiredPercentage);
         ScoreManager.Instance.UpdateScore(currentPercentage);
     }
 
+    // Coroutine to make an object blink
     public IEnumerator Blink(float duration, SpriteRenderer spriteRenderer, bool visibleAtEnd = true)
     {
         float endTime = Time.time + duration;
@@ -341,10 +429,112 @@ public class GameManager : Singleton<GameManager>
         spriteRenderer.enabled = visibleAtEnd;
         ContinueGame();
     }
-
+    
     public void AddTime()
     {
         _currentTime += 10;
         UIManager.Instance.UpdateTimeText(_currentTime);
+    }
+
+    public void UpdateLevelData(LevelData currentLevelData)
+    {
+        // change the background
+        _background = currentLevelData.Background;
+        CreateBackground();
+        
+        // reset the game
+        _currentTime = 90;
+        _requiredPercentage = currentLevelData.RequiredPercentage;
+        UIManager.Instance.UpdateTimeText(_currentTime);
+        ScoreManager.Instance.ResetPercentage();
+        
+        // reset the waters
+        if (_waters != null)
+        {
+            for (int i = -_height / 2 + _landWidth; i <= _height / 2 - _landWidth; i++)
+            for (int j = -_width / 2 + _landWidth; j <= _width / 2 - _landWidth; j++)
+            {
+                    _watersState[i + _height / 2, j + _width / 2] = true;
+                    _waters[i + _height / 2, j + _width / 2].GetComponent<SpriteRenderer>().color = _waterOriginalColor; 
+            }
+        }
+
+        // reset the enemies
+        EnemyManager.Instance.UpdateLevelData(currentLevelData);
+        
+        // reset the power-ups
+        PowerUpManager.Instance.UpdateLevelData(currentLevelData);
+        PowerUpManager.Instance.StartSpwanPowerUps();
+        
+        // reset the player
+        PlayerController.Instance.StartGameSession();
+        
+        // reset the lives
+        if (_livesPrefabs != null)
+        {
+            for (int i = 0; i < _livesPrefabs.Length; i++)
+            {
+                _livesPrefabs[i].GetComponent<SpriteRenderer>().enabled = true;
+            }
+        }
+        _lives = 3;
+        
+        // reset the bomb
+        _bombsCount = 0;
+        _bomb.GetComponent<SpriteRenderer>().color = new Color(1f, 1f, 1f, 0.3f);
+        
+        // show the level message
+        StartCoroutine(ShowLevelMessage(currentLevelData.LevelMessage,currentLevelData.LevelNumber));
+    }
+    
+    private IEnumerator ShowLevelMessage(string message, int _levelNumber)    
+    {
+        yield return UIManager.Instance.TypeWriterEffect(message, _levelNumber);
+        _isGameStarted = true;
+        _isGameRunning = true;
+    }
+
+    // Collect the bomb
+    public void Bomb()
+    {
+        if (_bombsCount > 0) return;
+        _bombsCount++;
+        _bomb.GetComponent<SpriteRenderer>().color = new Color(1f, 1f, 1f, 1f);
+    }
+
+    // Explode the bomb
+    public void Explode(Vector3 position)
+    {
+        if (_bombsCount > 0)
+        {
+            _explodeGameObject.transform.position = position;
+            StartCoroutine(ExplodeCoroutine(position));
+            _bombsCount--;
+            _bomb.GetComponent<SpriteRenderer>().color = new Color(1f, 1f, 1f, 0.3f);
+        }
+        else
+        {
+            AudioManager.Instance.PlaySound(_emptyBomb);
+        }
+    }
+
+    // Coroutine to show the explosion effect
+    private IEnumerator ExplodeCoroutine(Vector3 position)
+    {
+        _explodeGameObject.SetActive(true);
+        AudioManager.Instance.PlaySound(_explode);
+        foreach (var enemy in EnemyManager.Instance.Enemies)
+        {
+            var enemyPosition = enemy.transform.position;
+            if(enemyPosition.x < position.x + 10 && enemyPosition.x > position.x - 10
+               && enemyPosition.y < position.y + 10 && enemyPosition.y > position.y - 10)
+            {
+                EnemyManager.Instance.FreezeEnemy(enemy);
+            }
+        }
+        
+        yield return new WaitForSeconds(0.5f);
+        
+        _explodeGameObject.SetActive(false);
     }
 }

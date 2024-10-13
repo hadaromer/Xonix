@@ -2,6 +2,7 @@
 
 ## Table of Contents
 - [Introduction](##introduction)
+- [Demo](##demo)
 - [Features](#features)
 - [Gameplay](#gameplay)
 - [How to Run](#how-to-run)
@@ -14,6 +15,10 @@
 **Xonix** is a modern twist on the classic arcade game where players claim territory on a grid while avoiding enemies. In this version, you play as a student racing to claim areas while running away from 'F' (failed exams). As you claim new areas, the background changes to fun locations, like beaches or parties, representing the places a student would escape to.
 
 The game is built in Unity and offers a unique challenge, combining arcade-style gameplay with the theme of escaping academic stress.
+
+## Demo
+
+[Click here](https://hadaromer.itch.io/xonix)
 
 ## Features
 
